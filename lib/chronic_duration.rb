@@ -1,7 +1,6 @@
 require 'numerizer' unless defined?(Numerizer)
 
 module ChronicDuration
-
   extend self
 
   class DurationParseError < StandardError
@@ -41,6 +40,20 @@ module ChronicDuration
   def parse(string, opts = {})
     result = calculate_from_words(cleanup(string), opts)
     (!opts[:keep_zero] and result == 0) ? nil : result
+  end
+
+  # Given a string representation of elapsed time,
+  # return a hash of each of its units
+  def parse_units(string, opts = {})
+    words = cleanup(string).split(' ')
+    res = Hash.new(0)
+    words.each_with_index do |v, k|
+      if v =~ float_matcher
+        key = words[k + 1] || (opts[:default_unit] || 'seconds')
+        res[key] += convert_to_number(v)
+      end
+    end
+    res
   end
 
   # Given an integer and an optional format,
@@ -153,10 +166,9 @@ module ChronicDuration
     end
 
     result.length == 0 ? nil : result
-
   end
 
-private
+  private
 
   def humanize_time_unit(number, unit, pluralize, keep_zero)
     return nil if number == 0 && !keep_zero
@@ -191,6 +203,7 @@ private
   def duration_units_list
     %w(seconds minutes hours days weeks months years)
   end
+
   def duration_units_seconds_multiplier(unit)
     return 0 unless duration_units_list.include?(unit)
     case unit
